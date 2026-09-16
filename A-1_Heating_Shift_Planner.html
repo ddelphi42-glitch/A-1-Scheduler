@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>A-1 Heating Shift Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg:#faf7f5; --surface:#ffffff; --surface-2:#f5efec;
+    --ink:#1c1917; --muted:#7c716b; --faint:#a99f99;
+    --line:#e7ddd8; --line-strong:#d6c9c2;
+    --accent:#c0392b; --accent-soft:#f3ddd8;
+    --off:#c9c4c0; --off-ink:#8a827d;
+    --rs-bg:#fff3cf; --rs-line:#e8a72c;
+    --flag-blue:#2159d6; --flag-red:#c0392b;
+    --focus:#c0392b;
+    --shadow:0 1px 2px rgba(28,25,23,.06),0 8px 24px rgba(28,25,23,.06);
+    --radius:10px;
+    --f-display:'Archivo',system-ui,sans-serif;
+    --f-body:'IBM Plex Sans',system-ui,sans-serif;
+    --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  :root:not([data-theme="light"]){ }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#17130f; --surface:#211c18; --surface-2:#2a2420;
+      --ink:#f3ede9; --muted:#a99f99; --faint:#7c716b;
+      --line:#352d28; --line-strong:#463b35;
+      --accent:#e4674f; --accent-soft:#3a201b;
+      --off:#4a423d; --off-ink:#b7aca6;
+      --rs-bg:#3d3212; --rs-line:#e0a94a;
+      --flag-blue:#77a4ff; --flag-red:#f08267;
+      --focus:#e4674f;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#17130f; --surface:#211c18; --surface-2:#2a2420;
+    --ink:#f3ede9; --muted:#a99f99; --faint:#7c716b;
+    --line:#352d28; --line-strong:#463b35;
+    --accent:#e4674f; --accent-soft:#3a201b;
+    --off:#4a423d; --off-ink:#b7aca6;
+    --rs-bg:#3d3212; --rs-line:#e0a94a;
+    --flag-blue:#77a4ff; --flag-red:#f08267;
+    --focus:#e4674f;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.4);
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.4}
+  .wrap{max-width:1180px;margin:0 auto;padding-block:22px;padding-left:16px;padding-right:16px}
+
+  /* ---- masthead ---- */
+  .mast{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+  .mast h1{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3vw,30px);letter-spacing:-.02em;margin:0;color:var(--ink)}
+  .mast .badge{font-family:var(--f-display);font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 18px;max-width:70ch}
+
+  /* ---- control bar ---- */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:18px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+  input,select,button{font-family:inherit;font-size:14px;color:var(--ink)}
+  .ctl{background:var(--surface-2);border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;color:var(--ink)}
+  .ctl:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+  select.ctl{cursor:pointer}
+  .spacer{flex:1 1 auto}
+  .btn{background:var(--surface-2);border:1px solid var(--line-strong);border-radius:8px;padding:8px 13px;cursor:pointer;font-weight:600;font-size:13.5px;white-space:nowrap;transition:background .12s,border-color .12s}
+  .btn:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.ghost{background:transparent}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+
+  /* ---- sheet ---- */
+  .sheet{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;border-bottom:2px solid var(--ink)}
+  .sheet-head .rng{font-family:var(--f-display);font-weight:700;font-size:18px;letter-spacing:-.01em}
+  .sheet-head .meta{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  .sheet-head .meta b{color:var(--ink);font-weight:600}
+  .sheet-head .meta .rs{color:var(--accent);font-weight:700}
+
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:760px}
+  thead th{position:sticky;top:0;z-index:3;background:var(--surface-2);border-bottom:1px solid var(--line-strong);border-right:1px solid var(--line);
+    font-family:var(--f-display);font-weight:700;font-size:12.5px;color:var(--ink);text-align:left;padding:8px 10px;vertical-align:top;white-space:nowrap}
+  thead th .dnum{display:block;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+  thead th.corner{width:132px;min-width:132px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+
+  tbody td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:0;height:34px;position:relative}
+  tr.loc-title td{border-bottom:1px solid var(--line-strong);background:var(--surface-2);padding:0}
+  .loc-cell{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 10px}
+  .loc-input{font-family:var(--f-display);font-weight:800;font-size:15px;letter-spacing:-.01em;color:var(--accent);
+    background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 6px;width:auto;min-width:90px;max-width:220px;text-transform:uppercase}
+  .loc-input:hover{border-color:var(--line-strong)}
+  .loc-input:focus-visible{outline:2px solid var(--focus);outline-offset:0;background:var(--surface)}
+  .loc-title .tools{margin-left:auto;padding-right:8px;opacity:0;transition:opacity .12s}
+  tr.loc-title:hover .tools{opacity:1}
+
+  td.name-cell{width:132px;min-width:132px;background:var(--surface)}
+  .name-input{width:100%;background:transparent;border:1px solid transparent;padding:7px 10px;font-weight:600;color:var(--ink)}
+  .name-input::placeholder{color:var(--faint);font-weight:400}
+  .name-input:hover{border-color:var(--line)}
+  .name-input:focus-visible{outline:2px solid var(--focus);outline-offset:-1px;background:var(--surface-2)}
+  .name-cell .del-staff{position:absolute;right:4px;top:50%;transform:translateY(-50%);opacity:0}
+  .name-cell:hover .del-staff,.name-cell:focus-within .del-staff{opacity:1}
+
+  td.cell .cell-input{width:100%;height:100%;min-height:34px;background:transparent;border:0;padding:6px 22px 6px 10px;
+    font-family:var(--f-mono);font-weight:600;font-size:13.5px;color:var(--ink);text-align:left}
+  td.cell .cell-input::placeholder{color:transparent}
+  td.cell .cell-input:focus{outline:2px solid var(--focus);outline-offset:-2px;background:var(--surface)}
+  td.cell.c-blue .cell-input{color:var(--flag-blue)}
+  td.cell.c-red .cell-input{color:var(--flag-red)}
+  td.cell.coverage .cell-input{font-family:var(--f-body);font-style:italic;font-weight:500;color:var(--muted)}
+  td.cell.off{background:var(--off)}
+  td.cell.off .cell-input{color:var(--off-ink)}
+  td.cell.rs{background:var(--rs-bg);box-shadow:inset 3px 0 0 var(--rs-line)}
+
+  .cell-tools{position:absolute;right:2px;top:2px;display:flex;gap:2px;opacity:0;transition:opacity .1s;z-index:2}
+  td.cell:hover .cell-tools,td.cell:focus-within .cell-tools{opacity:1}
+  .mini{width:18px;height:18px;line-height:1;display:grid;place-items:center;border-radius:5px;border:1px solid var(--line-strong);
+    background:var(--surface);cursor:pointer;font-size:10px;font-weight:700;padding:0;color:var(--muted)}
+  .mini:hover{border-color:var(--accent);color:var(--accent)}
+  .mini.on{background:var(--off);color:var(--off-ink);border-color:var(--off-ink)}
+  .mini.rs-btn{font-size:9px}
+  .mini.rs-btn.on{background:var(--rs-line);color:#20160a;border-color:var(--rs-line)}
+  .mini.swatch{font-family:var(--f-mono)}
+
+  tr.add-row td{padding:5px 10px;border-right:0;background:var(--surface)}
+  .add-btn{background:transparent;border:1px dashed var(--line-strong);border-radius:7px;padding:5px 11px;cursor:pointer;color:var(--muted);font-weight:600;font-size:12.5px}
+  .add-btn:hover{color:var(--accent);border-color:var(--accent)}
+
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+  .legend .k{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:13px;height:13px;border-radius:3px;border:1px solid var(--line-strong);display:inline-block}
+  .sw.off{background:var(--off)}
+  .sw.rs{background:var(--rs-bg);box-shadow:inset 2px 0 0 var(--rs-line)}
+  .sw.blue{background:var(--flag-blue)}
+  .sw.red{background:var(--flag-red)}
+  .sw.cov{background:repeating-linear-gradient(45deg,var(--surface-2),var(--surface-2) 3px,var(--line) 3px,var(--line) 6px)}
+  .sent-wrap{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}
+  .sent-wrap input{width:96px}
+
+  .hint{margin:14px 2px 0;font-size:12.5px;color:var(--faint)}
+  .hint kbd{font-family:var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:11px;color:var(--muted)}
+
+  .addloc{margin-top:14px}
+
+  /* modal for snapshot */
+  .modal{position:fixed;inset:0;background:rgba(20,15,12,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal.show{display:flex}
+  .modal-card{background:var(--surface);border-radius:12px;max-width:min(96vw,1100px);max-height:92vh;overflow:auto;box-shadow:var(--shadow);border:1px solid var(--line-strong)}
+  .modal-card .mh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
+  .modal-card .mh p{margin:0;font-size:13px;color:var(--muted)}
+  .modal-card img{display:block;max-width:100%;height:auto}
+  .modal-body{padding:14px}
+
+  @media (max-width:520px){
+    .toolbar{padding:11px}
+    td.name-cell,thead th.corner{width:104px;min-width:104px}
+  }
+
+  @media print{
+    @page{size:landscape;margin:12mm}
+    .toolbar,.hint,.addloc,.foot .legend,.cell-tools,.name-cell .del,.loc-title .tools,.add-row,.mast .badge{display:none !important}
+    body{background:#fff}
+    .wrap{padding:0;max-width:none}
+    .sheet{border:1px solid #000;box-shadow:none;border-radius:0}
+    .scroll{overflow:visible}
+    table{min-width:0}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    thead th{background:#f0eae7 !important}
+    td.cell.off{background:#c9c4c0 !important}
+    td.cell.rs{background:#fff3cf !important}
+    tr.loc-title td{background:#f0eae7 !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <h1>A-1 Heating</h1>
+    <span class="badge">Weekly Schedule</span>
+  </div>
+  <p class="sub">Build the week across all your stores, then print to PDF or grab an image to send. Click a cell to type a shift like <b>10-3</b>, mark a day off, flag it in color, or type another store's name to show coverage. Everything saves in this browser automatically.</p>
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="weekOf">Week of (Sunday)</label>
+      <input type="date" id="weekOf" class="ctl">
+    </div>
+    <div class="field">
+      <label for="weekPick">Saved weeks</label>
+      <select id="weekPick" class="ctl"></select>
+    </div>
+    <div class="field">
+      <label for="roadshow">Roadshow</label>
+      <input type="text" id="roadshow" class="ctl" style="width:120px" placeholder="No RS">
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn" id="dupBtn" title="Copy this week onto the following Sunday">Copy to next week</button>
+      <button class="btn ghost" id="clearBtn" title="Clear all shifts but keep staff">Clear shifts</button>
+      <button class="btn ghost" id="delBtn" title="Delete this week">Delete week</button>
+      <button class="btn" id="themeBtn" title="Toggle light / dark">Theme</button>
+      <button class="btn" id="imgBtn">Snapshot image</button>
+      <button class="btn primary" id="printBtn">Print / PDF</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="sheet">
+    <div class="sheet-head">
+      <div class="rng" id="rangeLabel">—</div>
+      <div class="meta">
+        <span>Roadshow: <span class="rs" id="rsEcho">No RS</span></span>
+        <span id="sentEcho"></span>
+      </div>
+    </div>
+    <div class="scroll">
+      <table id="grid"></table>
+    </div>
+    <div class="foot">
+      <div class="legend">
+        <span class="k"><span class="sw off"></span>Day off</span>
+        <span class="k"><span class="sw rs"></span>Roadshow</span>
+        <span class="k"><span class="sw cov"></span>Covering another store</span>
+        <span class="k"><span class="sw blue"></span>Blue flag</span>
+        <span class="k"><span class="sw red"></span>Red flag</span>
+      </div>
+      <div class="sent-wrap">
+        <label for="sentInput">Sent</label>
+        <input type="text" id="sentInput" class="ctl" placeholder="mm/dd/yy">
+      </div>
+    </div>
+  </div>
+
+  <div class="addloc">
+    <button class="btn" id="addLocBtn">+ Add store</button>
+  </div>
+
+  <p class="hint">On any cell, hover for three buttons: <b>RS</b> highlights the shift to flag a roadshow at that store that day, <b>O</b> marks the day off, and the letter swatch cycles the text color (black &rarr; <span style="color:var(--flag-blue)">blue</span> &rarr; <span style="color:var(--flag-red)">red</span>). Type a store's name (like Nampa) into a cell to show someone covering there. Saves as you go.</p>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="mh">
+      <p>Right-click the image and choose <b>Save image as…</b> to send it.</p>
+      <button class="btn" id="modalClose">Close</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY="roadys-scheduler-v1";
+  var DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var COLORS=["default","blue","red"];
+
+  // ---------- date helpers ----------
+  function toISO(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function parseISO(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+  function sundayOf(d){ var x=new Date(d.getTime()); x.setDate(x.getDate()-x.getDay()); x.setHours(0,0,0,0); return x; }
+  function addDays(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+  function fmt(d){ return (d.getMonth()+1)+"/"+d.getDate()+"/"+String(d.getFullYear()).slice(-2); }
+
+  // ---------- state ----------
+  function cell(t,off,color,rs){ return {t:t||"",off:!!off,color:color||"default",rs:!!rs}; }
+  function blankCells(){ return [cell(),cell(),cell(),cell(),cell(),cell(),cell()]; }
+  function person(name){ return {name:name||"", cells:blankCells()}; }
+
+  function seed(){
+    var c=cell;
+    return {
+      weekStart:"2026-09-20", roadshow:"No RS", sent:"9/14/26",
+      locations:[
+        {name:"Boise", staff:[
+          {name:"Robert", cells:[c("9-2"),c("",1),c("4-8"),c("",1),c("4-8"),c("4-8"),c("10-3")]},
+          {name:"Jen",    cells:[c("2-6"),c("10-3"),c("10-3"),c(),c("10-2"),c("10-3"),c("",1)]},
+          {name:"Tyler",  cells:[c(),c("",1),c("",1),c("10-2",0,"blue"),c(),c("",1),c("",1)]}
+        ]},
+        {name:"Nampa", staff:[
+          {name:"Ross",   cells:[c("",1),c("",1),c("10-2"),c("10-2"),c("10-2"),c("",1),c("",1)]},
+          {name:"Tyler",  cells:[c(),c("",1),c("",1),c("Boise"),c("2-6",0,"blue"),c("",1),c("",1)]},
+          {name:"Valerie",cells:[c(),c("10-4"),c(),c("2-6"),c(),c(),c()]},
+          {name:"Bob",    cells:[c(),c("",1),c("",1),c(),c(),c("10-3"),c()]}
+        ]},
+        {name:"Meridian", staff:[
+          {name:"Valerie",cells:[c("2-6",0,"red"),c("Nampa"),c("10-4"),c("Nampa"),c("10-3"),c("",1),c("10-3")]},
+          {name:"Bob",    cells:[c("9-2",0,"red"),c("",1),c("",1),c("10-3"),c("3-7"),c("Nampa"),c("10-3")]},
+          {name:"Tyler",  cells:[c(),c("",1),c("",1),c(),c(),c("",1),c("",1)]}
+        ]},
+        {name:"Kuna", staff:[ {name:"", cells:blankCells()} ]}
+      ]
+    };
+  }
+
+  var store={weeks:{},current:null};
+  function load(){
+    try{ var raw=localStorage.getItem(KEY); if(raw){ store=JSON.parse(raw); } }catch(e){}
+    if(!store||!store.weeks||!Object.keys(store.weeks).length){
+      var s=seed(); store={weeks:{},current:s.weekStart}; store.weeks[s.weekStart]=s;
+      save();
+    }
+    if(!store.current || !store.weeks[store.current]){ store.current=Object.keys(store.weeks).sort()[0]; }
+    if(!store.migrations) store.migrations={};
+    if(!store.migrations.kuna){
+      Object.keys(store.weeks).forEach(function(k){ var w=store.weeks[k];
+        if(!w.locations.some(function(l){return (l.name||"").trim().toLowerCase()==="kuna";})){ w.locations.push({name:"Kuna",staff:[person("")]}); }
+      });
+      store.migrations.kuna=true; save();
+    }
+    try{ var t=localStorage.getItem(KEY+":theme"); if(t) document.documentElement.setAttribute("data-theme",t); }catch(e){}
+  }
+  var saveTimer=null;
+  function save(){ if(saveTimer) clearTimeout(saveTimer); saveTimer=setTimeout(function(){ try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} },250); }
+  function week(){ return store.weeks[store.current]; }
+
+  // ---------- rendering ----------
+  var grid=document.getElementById("grid");
+  var locNames=function(){ return week().locations.map(function(l){return (l.name||"").trim().toLowerCase();}).filter(Boolean); };
+
+  function isCoverage(val){ var v=(val||"").trim().toLowerCase(); return v && locNames().indexOf(v)>=0; }
+
+  function renderHead(){
+    var w=week(), start=parseISO(w.weekStart);
+    var tr=document.createElement("tr");
+    var corner=document.createElement("th"); corner.className="corner"; corner.textContent="Staff"; tr.appendChild(corner);
+    for(var i=0;i<7;i++){
+      var d=addDays(start,i), th=document.createElement("th");
+      th.innerHTML=DAYS[i]+'<span class="dnum">'+d.getDate()+'</span>';
+      tr.appendChild(th);
+    }
+    var thead=document.createElement("thead"); thead.appendChild(tr); return thead;
+  }
+
+  function cellTd(li,si,di){
+    var cd=week().locations[li].staff[si].cells[di];
+    var td=document.createElement("td");
+    td.className="cell"+(cd.off?" off":"")+(cd.rs?" rs":"")+(cd.color==="blue"?" c-blue":cd.color==="red"?" c-red":"")+(isCoverage(cd.t)?" coverage":"");
+    td.dataset.li=li; td.dataset.si=si; td.dataset.di=di;
+    var inp=document.createElement("input");
+    inp.type="text"; inp.className="cell-input"; inp.value=cd.t;
+    inp.setAttribute("aria-label",DAYS[di]+" shift");
+    td.appendChild(inp);
+    var tools=document.createElement("div"); tools.className="cell-tools";
+    var rs=document.createElement("button"); rs.type="button"; rs.className="mini rs-btn"+(cd.rs?" on":""); rs.textContent="RS"; rs.title="Roadshow at this store this day"; rs.tabIndex=-1;
+    var off=document.createElement("button"); off.type="button"; off.className="mini off-btn"+(cd.off?" on":""); off.textContent="O"; off.title="Day off"; off.tabIndex=-1;
+    var col=document.createElement("button"); col.type="button"; col.className="mini swatch col-btn"; col.textContent="A"; col.title="Cycle color"; col.tabIndex=-1;
+    col.style.color = cd.color==="blue"?"var(--flag-blue)":cd.color==="red"?"var(--flag-red)":"var(--muted)";
+    tools.appendChild(rs); tools.appendChild(off); tools.appendChild(col); td.appendChild(tools);
+    return td;
+  }
+
+  function render(){
+    var w=week();
+    // head meta
+    var start=parseISO(w.weekStart), end=addDays(start,6);
+    document.getElementById("rangeLabel").textContent=fmt(start)+" – "+fmt(end);
+    document.getElementById("rsEcho").textContent=w.roadshow||"—";
+    document.getElementById("sentEcho").innerHTML = w.sent?('Sent: <b style="color:var(--accent)">'+w.sent+'</b>'):"";
+    document.getElementById("roadshow").value=w.roadshow||"";
+    document.getElementById("sentInput").value=w.sent||"";
+    document.getElementById("weekOf").value=w.weekStart;
+
+    // week picker
+    var pick=document.getElementById("weekPick"); pick.innerHTML="";
+    Object.keys(store.weeks).sort().forEach(function(k){
+      var s=parseISO(k), e=addDays(s,6);
+      var o=document.createElement("option"); o.value=k; o.textContent=fmt(s)+" – "+fmt(e);
+      if(k===store.current) o.selected=true; pick.appendChild(o);
+    });
+
+    // grid
+    grid.innerHTML="";
+    grid.appendChild(renderHead());
+    w.locations.forEach(function(loc,li){
+      var tb=document.createElement("tbody"); tb.dataset.li=li;
+      // title row
+      var tr=document.createElement("tr"); tr.className="loc-title";
+      var td=document.createElement("td");
+      var cellDiv=document.createElement("div"); cellDiv.className="loc-cell";
+      var linp=document.createElement("input"); linp.type="text"; linp.className="loc-input"; linp.value=loc.name; linp.setAttribute("aria-label","Store name");
+      var tools=document.createElement("div"); tools.className="tools";
+      var rm=document.createElement("button"); rm.type="button"; rm.className="btn ghost del-loc"; rm.textContent="Remove store"; rm.style.fontSize="12px"; rm.style.padding="4px 9px";
+      tools.appendChild(rm);
+      cellDiv.appendChild(linp); cellDiv.appendChild(tools);
+      td.appendChild(cellDiv); tr.appendChild(td);
+      var pad=document.createElement("td"); pad.colSpan=7; tr.appendChild(pad);
+      tb.appendChild(tr);
+      // staff rows
+      loc.staff.forEach(function(p,si){
+        var r=document.createElement("tr");
+        var nc=document.createElement("td"); nc.className="name-cell";
+        var ninp=document.createElement("input"); ninp.type="text"; ninp.className="name-input"; ninp.value=p.name; ninp.placeholder="Name"; ninp.setAttribute("aria-label","Staff name");
+        var del=document.createElement("button"); del.type="button"; del.className="mini del-staff"; del.textContent="×"; del.title="Remove person"; del.tabIndex=-1;
+        nc.appendChild(ninp); nc.appendChild(del); r.appendChild(nc);
+        for(var di=0;di<7;di++){ r.appendChild(cellTd(li,si,di)); }
+        tb.appendChild(r);
+      });
+      // add person row
+      var ar=document.createElement("tr"); ar.className="add-row";
+      var ac=document.createElement("td"); ac.colSpan=8;
+      var ab=document.createElement("button"); ab.type="button"; ab.className="add-btn add-staff"; ab.textContent="+ Add person";
+      ac.appendChild(ab); ar.appendChild(ac); tb.appendChild(ar);
+      grid.appendChild(tb);
+    });
+  }
+
+  // ---------- event wiring ----------
+  grid.addEventListener("input",function(e){
+    var t=e.target, tb=t.closest("tbody"); if(!tb) return; var li=+tb.dataset.li;
+    if(t.classList.contains("loc-input")){ week().locations[li].name=t.value; document.querySelectorAll(".cell").forEach(function(td){ var cd=week().locations[+td.dataset.li].staff[+td.dataset.si].cells[+td.dataset.di]; td.classList.toggle("coverage",isCoverage(cd.t)); }); save(); return; }
+    var tr=t.closest("tr"); if(!tr) return;
+    if(t.classList.contains("name-input")){ var rows=[].slice.call(tb.querySelectorAll("tr")).filter(function(x){return x.querySelector(".name-input");}); var si=rows.indexOf(tr); week().locations[li].staff[si].name=t.value; save(); return; }
+    if(t.classList.contains("cell-input")){ var td=t.closest("td"); var cd=week().locations[+td.dataset.li].staff[+td.dataset.si].cells[+td.dataset.di]; cd.t=t.value; td.classList.toggle("coverage",isCoverage(t.value)); save(); return; }
+  });
+
+  grid.addEventListener("click",function(e){
+    var btn=e.target;
+    if(btn.classList.contains("off-btn")){ var td=btn.closest("td"); var cd=week().locations[+td.dataset.li].staff[+td.dataset.si].cells[+td.dataset.di];
+      cd.off=!cd.off; if(cd.off){ cd.t=""; td.querySelector(".cell-input").value=""; td.classList.remove("coverage"); cd.rs=false; td.classList.remove("rs"); var rb=td.querySelector(".rs-btn"); if(rb) rb.classList.remove("on"); }
+      td.classList.toggle("off",cd.off); btn.classList.toggle("on",cd.off); save(); return; }
+    if(btn.classList.contains("rs-btn")){ var tdr=btn.closest("td"); var cdr=week().locations[+tdr.dataset.li].staff[+tdr.dataset.si].cells[+tdr.dataset.di];
+      cdr.rs=!cdr.rs; if(cdr.rs){ cdr.off=false; tdr.classList.remove("off"); var ob=tdr.querySelector(".off-btn"); if(ob) ob.classList.remove("on"); }
+      tdr.classList.toggle("rs",cdr.rs); btn.classList.toggle("on",cdr.rs); save(); return; }
+    if(btn.classList.contains("col-btn")){ var td2=btn.closest("td"); var cd2=week().locations[+td2.dataset.li].staff[+td2.dataset.si].cells[+td2.dataset.di];
+      var ni=(COLORS.indexOf(cd2.color)+1)%COLORS.length; cd2.color=COLORS[ni];
+      td2.classList.toggle("c-blue",cd2.color==="blue"); td2.classList.toggle("c-red",cd2.color==="red");
+      btn.style.color = cd2.color==="blue"?"var(--flag-blue)":cd2.color==="red"?"var(--flag-red)":"var(--muted)"; save(); return; }
+    if(btn.classList.contains("del-staff")){ var tb=btn.closest("tbody"); var li=+tb.dataset.li; var tr=btn.closest("tr");
+      var rows=[].slice.call(tb.querySelectorAll("tr")).filter(function(x){return x.querySelector(".name-input");}); var si=rows.indexOf(tr);
+      week().locations[li].staff.splice(si,1); save(); render(); return; }
+    if(btn.classList.contains("add-staff")){ var li2=+btn.closest("tbody").dataset.li; week().locations[li2].staff.push(person("")); save(); render(); return; }
+    if(btn.classList.contains("del-loc")){ var li3=+btn.closest("tbody").dataset.li;
+      if(week().locations.length<=1){ alert("Keep at least one store."); return; }
+      if(confirm("Remove this store and its staff from this week?")){ week().locations.splice(li3,1); save(); render(); } return; }
+  });
+
+  // toolbar
+  document.getElementById("weekOf").addEventListener("change",function(e){
+    if(!e.target.value) return;
+    var sun=toISO(sundayOf(parseISO(e.target.value)));
+    if(!store.weeks[sun]){ // create new week carrying roster (names) from current
+      var cur=week(); var nw={weekStart:sun,roadshow:cur.roadshow||"",sent:"",locations:cur.locations.map(function(l){ return {name:l.name,staff:l.staff.map(function(p){return person(p.name);})}; })};
+      store.weeks[sun]=nw;
+    }
+    store.current=sun; save(); render();
+  });
+  document.getElementById("weekPick").addEventListener("change",function(e){ store.current=e.target.value; save(); render(); });
+  document.getElementById("roadshow").addEventListener("input",function(e){ week().roadshow=e.target.value; document.getElementById("rsEcho").textContent=e.target.value||"—"; save(); });
+  document.getElementById("sentInput").addEventListener("input",function(e){ week().sent=e.target.value; document.getElementById("sentEcho").innerHTML=e.target.value?('Sent: <b style="color:var(--accent)">'+e.target.value+'</b>'):""; save(); });
+
+  document.getElementById("dupBtn").addEventListener("click",function(){
+    var cur=week(); var next=toISO(addDays(parseISO(cur.weekStart),7));
+    var copy=JSON.parse(JSON.stringify(cur)); copy.weekStart=next; copy.sent="";
+    store.weeks[next]=copy; store.current=next; save(); render();
+  });
+  document.getElementById("clearBtn").addEventListener("click",function(){
+    if(!confirm("Clear all shifts, days off, and colors for this week? Staff and stores stay.")) return;
+    week().locations.forEach(function(l){ l.staff.forEach(function(p){ p.cells=blankCells(); }); }); save(); render();
+  });
+  document.getElementById("delBtn").addEventListener("click",function(){
+    if(Object.keys(store.weeks).length<=1){ alert("This is your only saved week. Clear it instead if you want a fresh start."); return; }
+    if(!confirm("Delete this week for good?")) return;
+    delete store.weeks[store.current]; store.current=Object.keys(store.weeks).sort()[0]; save(); render();
+  });
+  document.getElementById("addLocBtn").addEventListener("click",function(){ week().locations.push({name:"New Store",staff:[person("")]}); save(); render(); });
+
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    var cur=document.documentElement.getAttribute("data-theme");
+    var mqDark=window.matchMedia&&window.matchMedia("(prefers-color-scheme:dark)").matches;
+    var next = cur ? (cur==="dark"?"light":"dark") : (mqDark?"light":"dark");
+    document.documentElement.setAttribute("data-theme",next);
+    try{ localStorage.setItem(KEY+":theme",next); }catch(e){}
+  });
+
+  document.getElementById("printBtn").addEventListener("click",function(){ window.print(); });
+
+  // snapshot to image (download is blocked in sandbox, so show in modal for right-click save)
+  var modal=document.getElementById("modal");
+  document.getElementById("imgBtn").addEventListener("click",function(){
+    var body=document.getElementById("modalBody"); body.innerHTML="<p style='color:var(--muted);font-size:13px;margin:8px'>Rendering…</p>";
+    modal.classList.add("show");
+    var target=document.getElementById("sheet");
+    var bg=getComputedStyle(document.body).backgroundColor;
+    if(typeof html2canvas!=="function"){ body.innerHTML="<p style='color:var(--muted);font-size:13px;margin:8px'>Image render unavailable here. Use Print / PDF instead.</p>"; return; }
+    html2canvas(target,{backgroundColor:bg,scale:2,scrollX:0,scrollY:-window.scrollY}).then(function(canvas){
+      body.innerHTML=""; var img=new Image(); img.src=canvas.toDataURL("image/png"); img.alt="Schedule snapshot"; body.appendChild(img);
+    }).catch(function(){ body.innerHTML="<p style='color:var(--muted);font-size:13px;margin:8px'>Couldn't render the image. Use Print / PDF instead.</p>"; });
+  });
+  document.getElementById("modalClose").addEventListener("click",function(){ modal.classList.remove("show"); });
+  modal.addEventListener("click",function(e){ if(e.target===modal) modal.classList.remove("show"); });
+
+  // ---------- boot ----------
+  load(); render();
+})();
+</script>
+</body>
+</html>
