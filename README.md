@@ -1,6 +1,3 @@
-Getting started
-Save the attached file somewhere easy to find, like your desktop, then double-click it to open in your web browser (Chrome, Edge, or Safari all work). That is the whole install. Use the same computer and browser each time, because it saves your work there.
-
 Building a week
 
 Set "Week of" at the top to the Sunday of the week you are scheduling. The day numbers and date range fill in automatically.
